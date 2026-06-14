@@ -1,0 +1,36 @@
+wing: banking_system
+rooms:
+- name: web_animation
+  description: Files from web-animation/
+- name: logs
+  description: Files from logs/
+- name: bankapp_ui
+  description: Files from bankapp-ui/
+- name: reports
+  description: Files from reports/
+- name: sessions
+  description: Files from sessions/
+- name: public
+  description: Files from public/
+- name: backend
+  description: Files from backend/
+- name: uploads
+  description: Files from uploads/
+- name: test_results
+  description: Files from test-results/
+- name: wireframe
+  description: Files from wireframe/
+- name: documentation
+  description: Files from docs/
+- name: frontend
+  description: Files from frontend/
+- name: scripts
+  description: Files from scripts/
+- name: planning
+  description: Files from specs/
+- name: configuration
+  description: Files from config/
+- name: testing
+  description: Files from tests/
+- name: general
+  description: Files that don't fit other rooms

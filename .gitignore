@@ -1,0 +1,24 @@
+# Node.js & npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+backend/.env
+
+# Build artifacts
+# Angular build output
+bankapp-ui/dist/
+# Backend compiled files (if any)
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Optional: IDE/editor settings
+.vscode/
+.idea/

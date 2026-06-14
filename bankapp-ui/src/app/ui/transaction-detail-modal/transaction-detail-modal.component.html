@@ -1,0 +1,182 @@
+@if (isOpen) {
+  <div
+    class="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+    (click)="onBackdropClick($event)"
+    (keydown.escape)="close()"
+  >
+    <div
+      class="bg-white w-full max-w-lg rounded-t-2xl max-h-[85vh] overflow-y-auto slide-up"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="sticky top-0 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+        <h3 class="font-semibold text-slate-900">Transaction Details</h3>
+        <button (click)="close()" class="p-1 hover:bg-slate-100 rounded-lg">
+          <lucide-icon [img]="xIcon" class="w-5 h-5 text-slate-500"></lucide-icon>
+        </button>
+      </div>
+
+      @if (loading()) {
+        <div class="p-8 flex flex-col items-center justify-center">
+          <lucide-icon [img]="loaderIcon" class="w-8 h-8 animate-spin text-blue-600"></lucide-icon>
+          <p class="mt-2 text-slate-500">Loading transaction...</p>
+        </div>
+      } @else if (error()) {
+        <div class="p-8 flex flex-col items-center justify-center">
+          <lucide-icon [img]="alertCircleIcon" class="w-8 h-8 text-red-500"></lucide-icon>
+          <p class="mt-2 text-red-600">{{ error() }}</p>
+          <button
+            (click)="close()"
+            class="mt-4 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium"
+          >
+            Close
+          </button>
+        </div>
+      } @else if (transaction()) {
+        <div class="p-6 bg-gradient-to-br from-slate-50 to-slate-100">
+          <div class="flex items-center justify-center gap-3 mb-2">
+            <div
+              class="w-12 h-12 rounded-full flex items-center justify-center"
+              [class.bg-emerald-100]="isIncoming"
+              [class.bg-red-100]="isOutgoing"
+            >
+              <lucide-icon
+                [img]="typeIcon"
+                class="w-6 h-6"
+                [class.text-emerald-600]="isIncoming"
+                [class.text-red-600]="isOutgoing"
+              ></lucide-icon>
+            </div>
+          </div>
+          <p
+            class="text-3xl font-bold text-center"
+            [class.text-emerald-600]="isIncoming"
+            [class.text-red-600]="isOutgoing"
+          >
+            {{ isIncoming ? '+' : '-' }}${{ transaction()?.amount | number: '1.2-2' }}
+          </p>
+          <p class="text-center text-slate-500 text-sm mt-1 capitalize">{{ transaction()?.type }}</p>
+        </div>
+
+        <div class="px-4 py-3 border-b border-slate-100">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">Status</span>
+            <span
+              class="px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
+              [class]="statusClass"
+            >
+              <lucide-icon [img]="statusIcon" class="w-3 h-3"></lucide-icon>
+              {{ transaction()?.status | titlecase }}
+            </span>
+          </div>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <div class="flex items-center justify-between py-2">
+            <div class="flex items-center gap-2 text-slate-500">
+              <lucide-icon [img]="hashIcon" class="w-4 h-4"></lucide-icon>
+              <span class="text-sm">Transaction ID</span>
+            </div>
+            <span class="text-sm font-mono text-slate-700">{{ transaction()?.transactionId }}</span>
+          </div>
+
+          <div class="flex items-center justify-between py-2">
+            <div class="flex items-center gap-2 text-slate-500">
+              <lucide-icon [img]="calendarIcon" class="w-4 h-4"></lucide-icon>
+              <span class="text-sm">Date</span>
+            </div>
+            <span class="text-sm text-slate-700">{{ transaction()?.createdAt | date: 'medium' }}</span>
+          </div>
+
+          @if (transaction()?.description) {
+            <div class="flex items-start justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="walletIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">Description</span>
+              </div>
+              <span class="text-sm text-slate-700 text-right max-w-[60%]">{{ transaction()?.description }}</span>
+            </div>
+          }
+
+          @if (transaction()?.receiverName) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="userIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">Recipient</span>
+              </div>
+              <span class="text-sm text-slate-700">{{ transaction()?.receiverName }}</span>
+            </div>
+          }
+
+          @if (transaction()?.depositorName) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="userIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">Depositor</span>
+              </div>
+              <span class="text-sm text-slate-700">{{ transaction()?.depositorName }}</span>
+            </div>
+          }
+
+          @if (transaction()?.bankName) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="buildingIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">Bank</span>
+              </div>
+              <span class="text-sm text-slate-700">{{ transaction()?.bankName }}</span>
+            </div>
+          }
+
+          @if (transaction()?.fromAccount?.accountNumber) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="creditCardIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">From Account</span>
+              </div>
+              <span class="text-sm font-mono text-slate-700">{{ transaction()?.fromAccount?.accountNumber }}</span>
+            </div>
+          }
+
+          @if (transaction()?.toAccount?.accountNumber) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="creditCardIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">To Account</span>
+              </div>
+              <span class="text-sm font-mono text-slate-700">{{ transaction()?.toAccount?.accountNumber }}</span>
+            </div>
+          }
+
+          @if (transaction()?.IBAN) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="buildingIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">IBAN</span>
+              </div>
+              <span class="text-sm font-mono text-slate-700">{{ transaction()?.IBAN }}</span>
+            </div>
+          }
+
+          @if (transaction()?.swiftCode) {
+            <div class="flex items-center justify-between py-2">
+              <div class="flex items-center gap-2 text-slate-500">
+                <lucide-icon [img]="buildingIcon" class="w-4 h-4"></lucide-icon>
+                <span class="text-sm">SWIFT</span>
+              </div>
+              <span class="text-sm font-mono text-slate-700">{{ transaction()?.swiftCode }}</span>
+            </div>
+          }
+        </div>
+
+        <div class="p-4 border-t border-slate-100">
+          <button
+            (click)="close()"
+            class="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+}

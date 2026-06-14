@@ -1,0 +1,13 @@
+module.exports = {
+  root: true,
+  ignorePatterns: ['dist/**', 'node_modules/**', 'e2e-tests/**', 'coverage/**', '.angular/**'],
+  overrides: [
+    {
+      files: ['*.config.js'],
+      rules: {
+        'no-undef': 'off',
+        'no-unused-vars': 'off'
+      }
+    }
+  ]
+};

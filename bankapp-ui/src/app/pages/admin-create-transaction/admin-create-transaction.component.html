@@ -1,0 +1,576 @@
+<div class="bg-slate-50 min-h-screen pb-8">
+    <div class="status-bar-spacer bg-blue-600"></div>
+
+    <div class="bg-gradient-to-br from-blue-600 to-blue-800 text-white px-5 pt-6 pb-20">
+        <div class="max-w-lg mx-auto">
+            <a routerLink="/admin/dashboard" class="inline-flex items-center gap-2 text-blue-100 hover:text-white mb-6">
+                <lucide-icon [img]="arrowLeft" class="w-5 h-5"></lucide-icon>
+                <span class="text-sm">Back to Dashboard</span>
+            </a>
+            <div class="text-center">
+                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                </div>
+                <h1 class="text-2xl font-bold">Create Transaction</h1>
+                <p class="text-blue-100 mt-1">Create account transactions or process card payments</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-5 -mt-12">
+        <div class="max-w-lg mx-auto">
+            <form [formGroup]="transactionForm" (ngSubmit)="onSubmit()"
+                class="bg-white rounded-2xl shadow-xl p-6 md:p-8 space-y-6">
+                @if (loading()) {
+                <div class="h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div class="h-full bg-blue-600 animate-pulse w-full"></div>
+                </div>
+                }
+
+                <!-- Transaction Type -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Transaction Type</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        @for (type of transactionTypes; track type.value) {
+                        <label class="relative">
+                            <input type="radio" formControlName="type" [value]="type.value" class="peer sr-only" />
+                            <div class="px-3 py-2.5 border-2 border-slate-300 rounded-xl cursor-pointer text-center transition-all
+                      peer-checked:border-blue-600 peer-checked:bg-blue-50 hover:border-slate-400">
+                                <span class="text-xl mb-0.5 block">{{ type.icon }}</span>
+                                <span class="text-xs font-medium text-slate-700">{{ type.label }}</span>
+                            </div>
+                        </label>
+                        }
+                    </div>
+                </div>
+
+                <!-- Deposit: To Account (receiving money) + Depositor Info -->
+                @if (transactionForm.get('type')?.value === 'deposit') {
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">To Account (Receiving)</label>
+                    <div class="relative">
+                        <input type="text" [value]="accountInputValue('deposit')"
+                            (input)="onAccountInput('deposit', $any($event).target.value)"
+                            (focus)="openDropdown('deposit')" (blur)="closeDropdown()"
+                            placeholder="Search by name or email..." autocomplete="off"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        @if (accountSearching()) {
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                            <lucide-icon [img]="loader" class="w-4 h-4 animate-spin text-slate-400"></lucide-icon>
+                        </div>
+                        }
+                        <!-- Dropdown Results -->
+                        @if (showAccountDropdown() && activeDropdown() === 'deposit') {
+                        <div
+                            class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            @if (accountSearchResults().length === 0) {
+                            <div class="px-3 py-2 text-sm text-slate-500">No accounts found</div>
+                            }
+                            @for (acc of accountSearchResults(); track acc._id) {
+                            <button type="button"
+                                (mousedown)="selectAccount(acc._id, 'deposit'); $event.preventDefault()"
+                                class="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                                <div class="text-sm font-medium text-slate-900">
+                                    {{ acc.userName || 'Unknown' }}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    {{ acc.userEmail }} · {{ acc.type | titlecase }} ****{{
+                                    acc.accountNumber?.slice(-4)
+                                    }}
+                                </div>
+                            </button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    @if (
+                    transactionForm.get('toAccountId')?.touched &&
+                    transactionForm.get('toAccountId')?.invalid
+                    ) {
+                    <p class="text-red-600 text-xs mt-1">Please select an account</p>
+                    }
+                </div>
+                <!-- Depositor Information -->
+                <div class="p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Depositor Information</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Depositor Name</label>
+                            <input type="text" formControlName="depositorName" placeholder="Name of person depositing"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Depositor ID</label>
+                            <input type="text" formControlName="depositorId" placeholder="ID number (optional)"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                    </div>
+                </div>
+                }
+
+                <!-- Withdrawal: From Account (source of money) -->
+                @if (transactionForm.get('type')?.value === 'withdrawal') {
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">From Account (Source)</label>
+                    <div class="relative">
+                        <input type="text" [value]="accountInputValue('withdrawal')"
+                            (input)="onAccountInput('withdrawal', $any($event).target.value)"
+                            (focus)="openDropdown('withdrawal')" (blur)="closeDropdown()"
+                            placeholder="Search by name or email..." autocomplete="off"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        @if (accountSearching()) {
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                            <lucide-icon [img]="loader" class="w-4 h-4 animate-spin text-slate-400"></lucide-icon>
+                        </div>
+                        }
+                        @if (showAccountDropdown() && activeDropdown() === 'withdrawal') {
+                        <div
+                            class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            @if (accountSearchResults().length === 0) {
+                            <div class="px-3 py-2 text-sm text-slate-500">No accounts found</div>
+                            }
+                            @for (acc of accountSearchResults(); track acc._id) {
+                            <button type="button" (mousedown)="
+                            selectAccount(acc._id, 'withdrawal'); $event.preventDefault()
+                          " class="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                                <div class="text-sm font-medium text-slate-900">
+                                    {{ acc.userName || 'Unknown' }}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    {{ acc.userEmail }} · {{ acc.type | titlecase }} ****{{
+                                    acc.accountNumber?.slice(-4)
+                                    }}
+                                </div>
+                            </button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    @if (
+                    transactionForm.get('fromAccountId')?.touched &&
+                    transactionForm.get('fromAccountId')?.invalid
+                    ) {
+                    <p class="text-red-600 text-xs mt-1">Please select an account</p>
+                    }
+                </div>
+                }
+
+                <!-- Transfer: From Account (source) -->
+                @if (transactionForm.get('type')?.value === 'transfer') {
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">From Account (Source)</label>
+                    <div class="relative">
+                        <input type="text" [value]="accountInputValue('transfer-from')"
+                            (input)="onAccountInput('transfer-from', $any($event).target.value)"
+                            (focus)="openDropdown('transfer-from')" (blur)="closeDropdown()"
+                            placeholder="Search by name or email..." autocomplete="off"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        @if (accountSearching()) {
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                            <lucide-icon [img]="loader" class="w-4 h-4 animate-spin text-slate-400"></lucide-icon>
+                        </div>
+                        }
+                        @if (showAccountDropdown() && activeDropdown() === 'transfer-from') {
+                        <div
+                            class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            @if (accountSearchResults().length === 0) {
+                            <div class="px-3 py-2 text-sm text-slate-500">No accounts found</div>
+                            }
+                            @for (acc of accountSearchResults(); track acc._id) {
+                            <button type="button" (mousedown)="
+                            selectAccount(acc._id, 'transfer-from'); $event.preventDefault()
+                          " class="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                                <div class="text-sm font-medium text-slate-900">
+                                    {{ acc.userName || 'Unknown' }}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    {{ acc.userEmail }} · {{ acc.type | titlecase }} ****{{
+                                    acc.accountNumber?.slice(-4)
+                                    }}
+                                </div>
+                            </button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    @if (
+                    transactionForm.get('fromAccountId')?.touched &&
+                    transactionForm.get('fromAccountId')?.invalid
+                    ) {
+                    <p class="text-red-600 text-xs mt-1">Please select source account</p>
+                    }
+                </div>
+                }
+
+                <!-- Card Transaction Fields -->
+                @if (transactionForm.get('type')?.value === 'card') {
+                <div class="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Card Details</h3>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Select Card</label>
+                        <div class="relative">
+                            <input type="text" [value]="selectedCardDisplay()"
+                                (input)="searchCards($any($event).target.value)" (focus)="openCardDropdown()"
+                                (blur)="closeCardDropdown()" placeholder="Search by card number, holder name..."
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            @if (cardSearching()) {
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                                <lucide-icon [img]="loader" class="w-4 h-4 animate-spin text-slate-400"></lucide-icon>
+                            </div>
+                            }
+                            @if (showCardDropdown()) {
+                            <div
+                                class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                @if (cardSearchResults().length === 0) {
+                                <div class="px-3 py-2 text-sm text-slate-500">No cards found</div>
+                                }
+                                @for (card of cardSearchResults(); track card._id) {
+                                <button type="button" (mousedown)="selectCard(card._id); $event.preventDefault()"
+                                    class="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                                    <div class="text-sm font-medium text-slate-900">
+                                        {{ card.userName || 'Unknown' }}
+                                    </div>
+                                    <div class="text-xs text-slate-500">
+                                        {{ card.cardType | titlecase }} ****{{ card.cardNumber?.slice(-4)
+                                        }}<span *ngIf="card.userEmail"> · {{ card.userEmail }}</span>
+                                    </div>
+                                </button>
+                                }
+                            </div>
+                            }
+                        </div>
+                        @if (
+                        transactionForm.get('cardId')?.touched && transactionForm.get('cardId')?.invalid
+                        ) {
+                        <p class="text-red-600 text-xs mt-1">Please select a card</p>
+                        }
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Transaction Type</label>
+                        <select formControlName="cardTransactionType"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="purchase">Purchase</option>
+                            <option value="withdrawal">ATM Withdrawal</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Merchant Details</label>
+                        <textarea formControlName="merchantDetails" rows="2"
+                            placeholder="Merchant name or transaction details"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm resize-none"></textarea>
+                    </div>
+                </div>
+                }
+
+                <!-- Transfer: To Account (can be internal or external) -->
+                @if (transactionForm.get('type')?.value === 'transfer') {
+                <div class="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">Recipient Details</h3>
+
+                    <!-- Recipient Type Toggle -->
+                    <div class="flex gap-2 mb-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" formControlName="recipientType" value="internal"
+                                class="text-blue-600" />
+                            <span class="text-sm text-slate-700">Internal Account</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" formControlName="recipientType" value="external"
+                                class="text-blue-600" />
+                            <span class="text-sm text-slate-700">External Account</span>
+                        </label>
+                    </div>
+
+                    <!-- Internal Account Dropdown -->
+                    @if (transactionForm.get('recipientType')?.value === 'internal') {
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Select Recipient Account</label>
+                        <select formControlName="toAccountId"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+                            <option value="">Select account</option>
+                            @for (acc of accounts(); track acc._id) {
+                            <option [value]="acc._id">
+                                {{ acc.type | titlecase }} ({{ acc.accountNumber.slice(-4) }}) -
+                                {{ acc.balance | currency }}
+                            </option>
+                            }
+                        </select>
+                    </div>
+                    }
+
+                    <!-- External Account Fields -->
+                    @if (transactionForm.get('recipientType')?.value === 'external') {
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Recipient Account /
+                                IBAN</label>
+                            <input type="text" formControlName="receiverIdentifier"
+                                placeholder="Enter account number or IBAN"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Bank Name</label>
+                                <input type="text" formControlName="bankName" [placeholder]="environment.bankName"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Account Holder Name</label>
+                                <input type="text" formControlName="accountHolderName" placeholder="Recipient name"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+
+                <!-- Payment: From Account and To Account (both flexible internal/external) -->
+                @if (transactionForm.get('type')?.value === 'payment') {
+                <!-- From Account Section -->
+                <div class="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">From Account (Source)</h3>
+
+                    <!-- Source Type Toggle -->
+                    <div class="flex gap-2 mb-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" formControlName="sourceType" value="internal" class="text-blue-600" />
+                            <span class="text-sm text-slate-700">Internal Account</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" formControlName="sourceType" value="external" class="text-blue-600" />
+                            <span class="text-sm text-slate-700">External Account</span>
+                        </label>
+                    </div>
+
+                    <!-- Internal Source Account -->
+                    @if (transactionForm.get('sourceType')?.value === 'internal') {
+                    <div class="relative">
+                        <input type="text" [value]="accountInputValue('payment-from')"
+                            (input)="onAccountInput('payment-from', $any($event).target.value)"
+                            (focus)="openDropdown('payment-from')" (blur)="closeDropdown()"
+                            placeholder="Search by name or email..." autocomplete="off"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        @if (accountSearching()) {
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                            <lucide-icon [img]="loader" class="w-4 h-4 animate-spin text-slate-400"></lucide-icon>
+                        </div>
+                        }
+                        @if (showAccountDropdown() && activeDropdown() === 'payment-from') {
+                        <div
+                            class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            @if (accountSearchResults().length === 0) {
+                            <div class="px-3 py-2 text-sm text-slate-500">No accounts found</div>
+                            }
+                            @for (acc of accountSearchResults(); track acc._id) {
+                            <button type="button" (mousedown)="
+                              selectAccount(acc._id, 'payment-from'); $event.preventDefault()
+                            "
+                                class="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                                <div class="text-sm font-medium text-slate-900">
+                                    {{ acc.userName || 'Unknown' }}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    {{ acc.userEmail }} · {{ acc.type | titlecase }} ****{{
+                                    acc.accountNumber?.slice(-4)
+                                    }}
+                                </div>
+                            </button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    }
+
+                    <!-- External Source Account -->
+                    @if (transactionForm.get('sourceType')?.value === 'external') {
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Source Account / IBAN</label>
+                            <input type="text" formControlName="externalSourceAccount"
+                                placeholder="Enter account number or IBAN"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Bank Name</label>
+                                <input type="text" formControlName="externalSourceBank" placeholder="Bank name"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Account Holder</label>
+                                <input type="text" formControlName="externalSourceHolder"
+                                    placeholder="Account holder name"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+
+                <!-- To Account Section -->
+                <div class="space-y-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <h3 class="text-sm font-semibold text-slate-700 mb-2">To Account (Recipient)</h3>
+
+                    <!-- Recipient Type Toggle -->
+                    <div class="flex gap-2 mb-3">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" formControlName="recipientType" value="internal"
+                                class="text-blue-600" />
+                            <span class="text-sm text-slate-700">Internal Account</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" formControlName="recipientType" value="external"
+                                class="text-blue-600" />
+                            <span class="text-sm text-slate-700">External Account</span>
+                        </label>
+                    </div>
+
+                    <!-- Internal Recipient Account -->
+                    @if (transactionForm.get('recipientType')?.value === 'internal') {
+                    <div class="relative">
+                        <input type="text" [value]="accountInputValue('payment-to')"
+                            (input)="onAccountInput('payment-to', $any($event).target.value)"
+                            (focus)="openDropdown('payment-to')" (blur)="closeDropdown()"
+                            placeholder="Search by name or email..." autocomplete="off"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        @if (accountSearching()) {
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                            <lucide-icon [img]="loader" class="w-4 h-4 animate-spin text-slate-400"></lucide-icon>
+                        </div>
+                        }
+                        @if (showAccountDropdown() && activeDropdown() === 'payment-to') {
+                        <div
+                            class="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            @if (accountSearchResults().length === 0) {
+                            <div class="px-3 py-2 text-sm text-slate-500">No accounts found</div>
+                            }
+                            @for (acc of accountSearchResults(); track acc._id) {
+                            <button type="button" (mousedown)="
+                              selectAccount(acc._id, 'payment-to'); $event.preventDefault()
+                            "
+                                class="w-full px-3 py-2 text-left hover:bg-blue-50 border-b border-slate-100 last:border-0">
+                                <div class="text-sm font-medium text-slate-900">
+                                    {{ acc.userName || 'Unknown' }}
+                                </div>
+                                <div class="text-xs text-slate-500">
+                                    {{ acc.userEmail }} · {{ acc.type | titlecase }} ****{{
+                                    acc.accountNumber?.slice(-4)
+                                    }}
+                                </div>
+                            </button>
+                            }
+                        </div>
+                        }
+                    </div>
+                    }
+
+                    <!-- External Recipient Account -->
+                    @if (transactionForm.get('recipientType')?.value === 'external') {
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Recipient Account /
+                                IBAN</label>
+                            <input type="text" formControlName="receiverIdentifier"
+                                placeholder="Enter account number or IBAN"
+                                class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Bank Name</label>
+                                <input type="text" formControlName="bankName" placeholder="Bank name"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 mb-1">Account Holder</label>
+                                <input type="text" formControlName="accountHolderName" placeholder="Recipient name"
+                                    class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                            </div>
+                        </div>
+                    </div>
+                    }
+                </div>
+                }
+
+                <!-- Amount -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Amount</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                        <input type="number" formControlName="amount" min="0.01" step="0.01" placeholder="0.00"
+                            class="w-full pl-8 pr-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm text-slate-900 placeholder-slate-400" />
+                    </div>
+                    @if (
+                    transactionForm.get('amount')?.touched && transactionForm.get('amount')?.invalid
+                    ) {
+                    <p class="text-red-600 text-xs mt-1">Please enter a valid amount (min $0.01)</p>
+                    }
+                </div>
+
+                <!-- Date and Time (not for card transactions) -->
+                @if (transactionForm.get('type')?.value !== 'card') {
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Date</label>
+                        <input type="date" formControlName="date"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm text-slate-900" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Time</label>
+                        <input type="time" formControlName="time"
+                            class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm text-slate-900" />
+                    </div>
+                </div>
+                }
+
+                <!-- Quick Amount Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" (click)="setAmount(100)"
+                        class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                        $100
+                    </button>
+                    <button type="button" (click)="setAmount(500)"
+                        class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                        $500
+                    </button>
+                    <button type="button" (click)="setAmount(1000)"
+                        class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                        $1,000
+                    </button>
+                    <button type="button" (click)="setAmount(5000)"
+                        class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors">
+                        $5,000
+                    </button>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Description (Optional)</label>
+                    <textarea formControlName="description" rows="2" placeholder="Add a note..."
+                        class="w-full px-3 py-2.5 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm resize-none text-slate-900 placeholder-slate-400"></textarea>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-200">
+                    <a routerLink="/admin/dashboard"
+                        class="px-6 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-700 font-medium hover:bg-slate-50 transition-colors text-sm text-center">
+                        Cancel
+                    </a>
+                    <button type="submit" [disabled]="loading() || transactionForm.invalid"
+                        class="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        @if (loading()) {
+                        <lucide-icon [img]="loader" class="w-4 h-4 animate-spin"></lucide-icon>
+                        <span>Processing...</span>
+                        } @else {
+                        <span>Send Transaction</span>
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

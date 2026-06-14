@@ -1,0 +1,42 @@
+- generic [ref=e4]:
+  - generic [ref=e6]:
+    - link "Back" [ref=e7] [cursor=pointer]:
+      - /url: /
+      - img [ref=e9]
+      - generic [ref=e11]: Back
+    - generic [ref=e12]:
+      - img [ref=e15]
+      - heading "Welcome Back" [level=1] [ref=e17]
+      - paragraph [ref=e18]: Sign in to access your accounts
+  - generic [ref=e20]:
+    - generic [ref=e21]:
+      - generic [ref=e22]:
+        - generic [ref=e23]:
+          - generic [ref=e24]: Email
+          - generic [ref=e25]:
+            - img [ref=e27]
+            - textbox "you@example.com" [ref=e30]
+        - generic [ref=e31]:
+          - generic [ref=e32]: Password
+          - generic [ref=e33]:
+            - img [ref=e35]
+            - textbox "••••••••" [ref=e38]
+            - button [ref=e39] [cursor=pointer]:
+              - img [ref=e41]
+        - generic [ref=e44]:
+          - generic [ref=e45] [cursor=pointer]:
+            - checkbox "Remember me" [ref=e46]
+            - generic [ref=e47]: Remember me
+          - link "Forgot password?" [ref=e48] [cursor=pointer]:
+            - /url: /forgot-password
+        - button "Sign In" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: Sign In
+          - img [ref=e53]
+      - generic [ref=e59]: or continue with
+      - button "Use Biometrics" [ref=e61] [cursor=pointer]:
+        - img [ref=e63]
+        - generic [ref=e72]: Use Biometrics
+    - paragraph [ref=e73]:
+      - text: Don't have an account?
+      - link "Open one now" [ref=e74] [cursor=pointer]:
+        - /url: /open-account

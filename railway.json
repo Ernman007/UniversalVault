@@ -1,0 +1,9 @@
+{
+  "$schema": "https://railway.app/railway.schema",
+  "build": {
+    "buildCommand": "npm ci --legacy-peer-deps"
+  },
+  "deploy": {
+    "startCommand": "npm start"
+  }
+}

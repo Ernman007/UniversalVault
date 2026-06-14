@@ -1,0 +1,9 @@
+{
+  "outputDirectory": "dist/bankapp-ui/browser",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
