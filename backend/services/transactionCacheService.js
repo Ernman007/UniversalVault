@@ -1,5 +1,7 @@
 const Transaction = require("../models/transaction");
 const Account = require("../models/account");
+// Required so Mongoose registers the schema before populate('requestTransferId') runs
+require("../models/requestTransfer");
 const {
   fetchOrSet,
   invalidateByPrefix,
