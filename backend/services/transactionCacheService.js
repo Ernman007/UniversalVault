@@ -93,7 +93,11 @@ const fetchTransactions = async (
     Transaction.find(filter)
       .populate("toAccount", "accountNumber user")
       .populate("fromAccount", "accountNumber user")
-      .populate("requestTransferId", "status")
+      .populate({
+        path: "requestTransferId",
+        select: "status",
+        model: "TransferRequest",
+      })
       .sort(sortField)
       .skip(skip)
       .limit(limitNum)

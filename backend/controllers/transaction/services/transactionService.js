@@ -318,7 +318,11 @@ const getTransactionByIdService = async (transactionId, userId) => {
       .populate("toAccount", "accountNumber accountHolderName IBAN user")
       .populate("fromAccount", "accountNumber accountHolderName IBAN user")
       .populate("userId", "name email")
-      .populate("requestTransferId", "status");
+      .populate({
+        path: "requestTransferId",
+        select: "status",
+        model: "TransferRequest",
+      });
 
     if (!transaction) {
       throw new Error("Transaction not found");
