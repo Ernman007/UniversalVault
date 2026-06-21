@@ -345,6 +345,11 @@ const handleGetTransactions = async (req, res) => {
       res.json(result);
     }
   } catch (error) {
+    console.error(
+      "[TRANSACTION] handleGetTransactions error:",
+      error.message,
+      error.stack,
+    );
     res.status(500).json({ message: error.message });
   }
 };
@@ -573,12 +578,10 @@ const handleUpdateTransactionStatus = async (req, res) => {
     }
 
     const updated = await updateTransactionStatusService(transactionId, status);
-    res
-      .status(200)
-      .json({
-        message: "Transaction status updated successfully",
-        transaction: updated,
-      });
+    res.status(200).json({
+      message: "Transaction status updated successfully",
+      transaction: updated,
+    });
   } catch (error) {
     if (error.message === "Transaction not found") {
       return res.status(404).json({ message: error.message });
@@ -586,12 +589,10 @@ const handleUpdateTransactionStatus = async (req, res) => {
     if (error.message === "Invalid status provided") {
       return res.status(400).json({ message: error.message });
     }
-    res
-      .status(500)
-      .json({
-        message: "Error updating transaction status",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error updating transaction status",
+      error: error.message,
+    });
   }
 };
 
@@ -717,12 +718,10 @@ const handleCreateCardTransaction = async (req, res) => {
     ) {
       return res.status(404).json({ message: error.message });
     }
-    res
-      .status(500)
-      .json({
-        message: "Error creating card transaction",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error creating card transaction",
+      error: error.message,
+    });
   }
 };
 

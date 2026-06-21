@@ -194,8 +194,15 @@ const getTransactionsByUserIdService = async (userId, filters = {}) => {
     return { data: modifiedTxns, meta: result.meta };
   }
 
-  // Legacy array response
-  const modifiedTxns = result.map((txn) => {
+  // result is always { data, meta } now — normalise for legacy callers
+  const rawList = Array.isArray(result) ? result : result.data || [];
+  if (!Array.isArray(rawList)) {
+    console.error(
+      "[TRANSACTION-SERVICE] getTransactionsByUserIdService: unexpected result shape",
+      result,
+    );
+  }
+  const modifiedTxns = rawList.map((txn) => {
     const base = { ...txn };
     if (!base.toAccount && base.accountNumber) {
       base.toAccount = { accountNumber: base.accountNumber };

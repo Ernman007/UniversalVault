@@ -80,6 +80,13 @@ const fetchTransactions = async (
   const sortField = sort || "-date";
   const skip = (pageNum - 1) * limitNum;
 
+  logger.info("[TRANSACTION-CACHE] fetchTransactions start", {
+    userId: userId?.toString(),
+    pageNum,
+    limitNum,
+    sortField,
+  });
+
   const [data, total] = await Promise.all([
     Transaction.find(filter)
       .populate("toAccount", "accountNumber user")
@@ -91,6 +98,11 @@ const fetchTransactions = async (
       .lean({ getters: true }),
     Transaction.countDocuments(filter),
   ]);
+
+  logger.info("[TRANSACTION-CACHE] fetchTransactions query done", {
+    rawCount: data.length,
+    total,
+  });
 
   // Add isUserSender/isUserReceiver flags for each transaction
   const enrichedData = data.map((tx) => {
@@ -153,6 +165,11 @@ const fetchTransactions = async (
       return false;
     }
     return true;
+  });
+
+  logger.info("[TRANSACTION-CACHE] fetchTransactions done", {
+    enrichedCount: enrichedData.length,
+    visibleCount: visibleData.length,
   });
 
   return {
