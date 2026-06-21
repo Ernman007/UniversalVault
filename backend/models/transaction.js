@@ -474,7 +474,8 @@ transactionSchema.statics.createTransaction = async function ({
     depositorId: depositorId || null,
     // External source for payment transactions
     externalSource: externalSource || null,
-    accountHolderName: accountHolderName || accountContext?.accountHolderName || null,
+    accountHolderName:
+      accountHolderName || accountContext?.accountHolderName || null,
   });
 
   await transaction.save();
@@ -579,6 +580,43 @@ transactionSchema.statics.rejectPendingTransaction = async function (
   if (reason) {
     transaction.description =
       `${transaction.description || ""} (Rejected: ${reason})`.trim();
+  }
+  await transaction.save();
+  return transaction;
+};
+
+// ─── STATIC: cancelPendingTransaction ────────────────────────────────────────
+// Used by the automatic expiry job to refund the sender when a TransferRequest expires.
+transactionSchema.statics.cancelPendingTransaction = async function (
+  transactionId,
+  reason,
+) {
+  const Account = require("./account");
+  const transaction = await this.findById(transactionId);
+
+  if (!transaction) {
+    throw new Error("Transaction not found");
+  }
+
+  if (transaction.status !== "pending") {
+    throw new Error(
+      `Cannot cancel transaction with status: ${transaction.status}`,
+    );
+  }
+
+  // Refund the sender
+  if (transaction.fromAccount) {
+    const fromAccount = await Account.findById(transaction.fromAccount);
+    if (fromAccount) {
+      fromAccount.balance += transaction.amount;
+      await fromAccount.save();
+    }
+  }
+
+  transaction.status = "cancelled";
+  if (reason) {
+    transaction.description =
+      `${transaction.description || ""} (Cancelled: ${reason})`.trim();
   }
   await transaction.save();
   return transaction;

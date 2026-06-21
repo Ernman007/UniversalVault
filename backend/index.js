@@ -129,7 +129,9 @@ app.set("io", io);
 
 // Start background jobs
 const startAutoCloseJob = require("./jobs/ticketAutoClose");
+const startTransferExpiryJob = require("./jobs/transferRequestExpiry");
 startAutoCloseJob(io);
+startTransferExpiryJob(io);
 
 // Database connection with retry mechanism
 const connectWithRetry = async () => {

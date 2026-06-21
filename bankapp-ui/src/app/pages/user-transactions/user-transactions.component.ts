@@ -232,6 +232,8 @@ import {
                       : 'shopping-bag'
                 "
                 [transactionId]="tx._id"
+                [status]="tx.status"
+                [transferStatus]="tx.transferStatus || ''"
                 (itemClick)="openTransactionDetail($event)"
               ></app-transaction-item>
             } @empty {

@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.universalvault.app/api',
-  wsUrl: 'https://api.universalvault.app',
+  apiUrl: 'https://universalvault.onrender.com/api',
+  wsUrl: 'https://universalvault.onrender.com',
   bankName: 'UniversalVault',
   bankCode: 'UNIVAULT',
   features: {

@@ -292,6 +292,8 @@ import { isIncomingTransaction } from '../../core/transaction-direction.util';
                   [isIncoming]="isIncomingTransaction(tx)"
                   [category]="tx.type | titlecase"
                   [icon]="getTxIcon(tx.type)"
+                  [status]="tx.status"
+                  [transferStatus]="tx.transferStatus || ''"
                 ></app-transaction-item>
               } @empty {
                 <div class="p-6 text-center text-slate-500 text-sm">No recent transactions</div>

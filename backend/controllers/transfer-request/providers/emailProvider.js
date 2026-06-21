@@ -1,9 +1,25 @@
 const nodemailer = require("nodemailer");
+const https = require("https");
 const { BANK_NAME, BANK_CODE } = require("../../../config/bankConfig");
 
-const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT);
+// ---------------------------------------------------------------------------
+// Transport selection
+//
+// Priority:
+//   1. RESEND_API_KEY  → Resend HTTP API  (works on Render / any cloud host)
+//   2. SMTP_HOST + SMTP_PORT → nodemailer SMTP  (local dev)
+//   3. fallback → nodemailer jsonTransport  (prints to stdout, dev only)
+//
+// Render (and most PaaS platforms) block outbound SMTP ports (25, 465, 587).
+// Use Resend in production: https://resend.com — free tier: 3 000 emails/month.
+// Set RESEND_API_KEY in your Render environment variables.
+// ---------------------------------------------------------------------------
 
-// Configure mailer
+const useResend = Boolean(process.env.RESEND_API_KEY);
+const smtpConfigured =
+  !useResend && Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT);
+
+// --- nodemailer transporter (SMTP / dev fallback) --------------------------
 const transporter = smtpConfigured
   ? nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -13,37 +29,102 @@ const transporter = smtpConfigured
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
+      // Fail fast — default is 2 minutes which blocks the HTTP response
+      connectionTimeout: 5_000,
+      greetingTimeout: 5_000,
+      socketTimeout: 15_000,
       tls: {
         rejectUnauthorized: false,
       },
     })
-  : nodemailer.createTransport({
-      jsonTransport: true,
-    });
+  : nodemailer.createTransport({ jsonTransport: true });
 
-// Verify transporter connection (skip during tests to avoid noisy logs)
 if (process.env.NODE_ENV !== "test") {
-  if (!smtpConfigured) {
-    console.log(
-      "SMTP not configured. Emails will be logged via jsonTransport in development.",
-    );
-  } else {
+  if (useResend) {
+    console.log("Email transport: Resend HTTP API");
+  } else if (smtpConfigured) {
+    console.log("Email transport: SMTP");
     transporter.verify((error) => {
       if (error) {
-        console.log("SMTP connection error:", error);
+        console.log("SMTP connection error:", error.message);
       } else {
         console.log("SMTP server is ready");
       }
     });
+  } else {
+    console.log(
+      "Email transport: jsonTransport (dev mode — emails logged to stdout)",
+    );
   }
 }
 
+// --- Resend HTTP transport -------------------------------------------------
+function sendViaResend({ from, to, subject, html, text }) {
+  return new Promise((resolve, reject) => {
+    const body = JSON.stringify({ from, to, subject, html, text });
+
+    const options = {
+      hostname: "api.resend.com",
+      path: "/emails",
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(body),
+      },
+    };
+
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", (chunk) => (data += chunk));
+      res.on("end", () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(JSON.parse(data));
+        } else {
+          reject(
+            new Error(`Resend API error (HTTP ${res.statusCode}): ${data}`),
+          );
+        }
+      });
+    });
+
+    req.on("error", reject);
+    req.setTimeout(15_000, () => {
+      req.destroy(new Error("Resend API request timed out"));
+    });
+
+    req.write(body);
+    req.end();
+  });
+}
+
+// --- Unified send helper ---------------------------------------------------
+// `from` can be a string "Name <addr>" or an object { name, address }
+function resolveFrom(from) {
+  if (typeof from === "string") return from;
+  return `${from.name} <${from.address}>`;
+}
+
+async function sendEmail({ from, to, subject, html, text }) {
+  if (useResend) {
+    return sendViaResend({
+      from: resolveFrom(from),
+      to,
+      subject,
+      html,
+      text,
+    });
+  }
+  return transporter.sendMail({ from, to, subject, html, text });
+}
+
+// ---------------------------------------------------------------------------
+// Public email functions
+// ---------------------------------------------------------------------------
+
 exports.sendWelcomeEmail = async (user) => {
-  await transporter.sendMail({
-    from: {
-      name: `${BANK_NAME}`,
-      address: process.env.SMTP_FROM,
-    },
+  await sendEmail({
+    from: { name: BANK_NAME, address: process.env.SMTP_FROM },
     to: user.email,
     subject: `Welcome to ${BANK_NAME}!`,
     text: `Hello ${user.name},\n\nWelcome to ${BANK_NAME}! Your account has been successfully created.`,
@@ -66,7 +147,7 @@ exports.sendWelcomeEmail = async (user) => {
             </div>
             <div class="content">
               <p>Hello <strong>${user.name}</strong>,</p>
-              <p>Thank you for choosing ${BANK_NAME}. your account has been successfully created and is now active.</p>
+              <p>Thank you for choosing ${BANK_NAME}. Your account has been successfully created and is now active.</p>
               <p>You can now sign in to your dashboard to manage your accounts, make transfers, and more.</p>
               <br>
               <p>Best regards,</p>
@@ -83,11 +164,8 @@ exports.sendWelcomeEmail = async (user) => {
 };
 
 exports.sendAccountRequestEmail = async (user, accountType) => {
-  await transporter.sendMail({
-    from: {
-      name: `${BANK_NAME}`,
-      address: process.env.SMTP_FROM,
-    },
+  await sendEmail({
+    from: { name: BANK_NAME, address: process.env.SMTP_FROM },
     to: user.email,
     subject: `Account Opening Request Received - ${BANK_NAME}`,
     text: `Hello ${user.name},\n\nWe have received your request to open a new ${accountType} account. Our team is currently reviewing your application.\n\nBank Code: ${BANK_CODE}`,
@@ -128,11 +206,8 @@ exports.sendAccountRequestEmail = async (user, accountType) => {
 };
 
 exports.sendAccountApprovalEmail = async (user, account) => {
-  await transporter.sendMail({
-    from: {
-      name: `${BANK_NAME}`,
-      address: process.env.SMTP_FROM,
-    },
+  await sendEmail({
+    from: { name: BANK_NAME, address: process.env.SMTP_FROM },
     to: user.email,
     subject: `Your Account has been Approved! - ${BANK_NAME}`,
     text: `Hello ${user.name},\n\nCongratulations! Your new ${account.type} account has been approved and is now active.\n\nAccount Number: ${account.accountNumber}\nBank Code: ${BANK_CODE}`,
@@ -178,7 +253,7 @@ exports.sendAccountApprovalEmail = async (user, account) => {
 };
 
 exports.sendVerificationEmail = async (userEmail, transferRequest) => {
-  await transporter.sendMail({
+  await sendEmail({
     from: {
       name: `${BANK_NAME} Transfers`,
       address: process.env.SMTP_FROM,

@@ -44,6 +44,9 @@ export type TransactionType = 'deposit' | 'withdrawal' | 'transfer' | 'payment';
         <div>
           <p class="font-medium text-slate-900">{{ title }}</p>
           <p class="text-xs text-slate-500">{{ subtitle }}</p>
+          @if (isPending) {
+            <p class="text-xs text-amber-500 font-medium mt-0.5">{{ pendingLabel }}</p>
+          }
         </div>
       </div>
       <div class="text-right">
@@ -70,10 +73,23 @@ export class TransactionItemComponent {
   @Input() icon: string = 'wallet';
   @Input() transactionId = '';
   @Input() isIncoming = false; // True if user is receiving money (deposit or transfer received)
+  @Input() status = '';
+  @Input() transferStatus = '';
   @Output() itemClick = new EventEmitter<string>();
 
   get isOutgoing(): boolean {
     return !this.isIncoming;
+  }
+
+  get isPending(): boolean {
+    return this.status === 'pending' && !this.isIncoming;
+  }
+
+  get pendingLabel(): string {
+    if (this.transferStatus === 'awaiting_verification') return 'Awaiting verification';
+    if (this.transferStatus === 'awaiting_bank_approval') return 'Awaiting bank approval';
+    if (this.status === 'pending') return 'Pending';
+    return '';
   }
 
   get iconData(): LucideIconData {

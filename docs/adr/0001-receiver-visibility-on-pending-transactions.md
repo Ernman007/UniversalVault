@@ -1,0 +1,3 @@
+# Receivers have no visibility until a Transaction is confirmed
+
+The sender's balance is reserved immediately when a Transfer Request is created, but the receiver's account is not credited — and the receiver sees nothing — until the Transaction is confirmed by the bank. We considered making pending incoming transactions visible to the receiver (flagged as "incoming") but rejected this because it would show money the receiver does not yet have and may never receive, creating false expectations. The receiver's transaction list and monthly income summary both filter to confirmed transactions only.

@@ -18,6 +18,7 @@ export interface Transaction {
   toAccountId?: string;
   isUserSender?: boolean;
   isUserReceiver?: boolean;
+  transferStatus?: string; // 'awaiting_verification' | 'awaiting_bank_approval' | null
 }
 
 export interface TransactionFilters {

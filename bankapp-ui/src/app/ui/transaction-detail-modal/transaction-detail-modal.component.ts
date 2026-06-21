@@ -19,8 +19,8 @@ import {
   Loader,
 } from 'lucide-angular';
 
-import { TransactionService } from '../../services/transaction/transaction.service';
 import { isIncomingTransaction } from '../../core/transaction-direction.util';
+import { TransactionService } from '../../services/transaction/transaction.service';
 
 export interface TransactionDetail {
   _id: string;
@@ -39,6 +39,7 @@ export interface TransactionDetail {
   swiftCode?: string;
   isUserSender?: boolean;
   isUserReceiver?: boolean;
+  transferStatus?: string;
   fromAccount?: {
     accountNumber?: string;
     accountHolderName?: string;
@@ -119,7 +120,9 @@ export class TransactionDetailModalComponent {
   }
 
   get statusIcon() {
-    const status = this.transaction()?.status;
+    const tx = this.transaction();
+    if (tx?.transferStatus) return Clock;
+    const status = tx?.status;
     switch (status) {
       case 'confirmed':
         return CheckCircle2;
@@ -135,7 +138,9 @@ export class TransactionDetailModalComponent {
   }
 
   get statusClass() {
-    const status = this.transaction()?.status;
+    const tx = this.transaction();
+    if (tx?.transferStatus) return 'bg-amber-100 text-amber-700';
+    const status = tx?.status;
     switch (status) {
       case 'confirmed':
         return 'bg-emerald-100 text-emerald-700';
@@ -148,6 +153,14 @@ export class TransactionDetailModalComponent {
       default:
         return 'bg-slate-100 text-slate-700';
     }
+  }
+
+  get statusLabel(): string {
+    const tx = this.transaction();
+    if (tx?.transferStatus === 'awaiting_verification') return 'Awaiting Verification';
+    if (tx?.transferStatus === 'awaiting_bank_approval') return 'Awaiting Bank Approval';
+    const status = tx?.status || '';
+    return status.charAt(0).toUpperCase() + status.slice(1);
   }
 
   ngOnChanges() {
